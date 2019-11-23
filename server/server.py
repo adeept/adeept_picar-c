@@ -72,7 +72,7 @@ B_set = 0
 
 
 def start_blockly():
-	os.system("cd //home/pi/Blockly && sudo python3 server.py")
+	os.system("cd //home/pi/Blockly_picar-c && sudo python3 server.py")
 
 
 if Blockly:
