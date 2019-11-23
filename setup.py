@@ -7,6 +7,7 @@
 
 import os
 import time
+import sys
 
 def replace_num(file,initial,new_num):  
     newline=""
@@ -165,7 +166,7 @@ except:
 try:
 	os.system('sudo touch //home/pi/startup.sh')
 	with open("//home/pi/startup.sh",'w') as file_to_write:
-		file_to_write.write("#!/bin/sh\nsudo python3 /%s/server.py"%sys.path[0])
+		file_to_write.write("#!/bin/sh\nsudo python3 /%s/server/server.py"%sys.path[0])
 except:
 	pass
 
