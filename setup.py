@@ -47,6 +47,10 @@ for x in range(1,4):
 
 ##########SR###########
 for x in range(1,4):
+	if os.system("sudo apt-get install pulseaudio pulseaudio-utils libpulse-dev libpulse-java libpulse0") == 0:
+		break
+
+for x in range(1,4):
 	if os.system("sudo apt-get install -y bison libasound2-dev swig") == 0:
 		break
 
