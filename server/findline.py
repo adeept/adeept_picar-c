@@ -9,9 +9,9 @@ import time
 import move
 import servo
 
-line_pin_right = 19
+line_pin_right = 20
 line_pin_middle = 16
-line_pin_left = 20
+line_pin_left = 19
 
 def setup():
     GPIO.setwarnings(False)
