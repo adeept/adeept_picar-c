@@ -29,10 +29,10 @@ def run():
     if status_middle == 1:
         move.move(100, 'forward')
     elif status_left == 1:
-        servo.turnRight()
+        servo.turnLeft()
         move.move(100, 'forward')
     elif status_right == 1:
-        servo.turnLeft()
+        servo.turnRight()
         move.move(100, 'forward')
     else:
         move.move(100, 'backward')
