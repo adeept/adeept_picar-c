@@ -50,6 +50,30 @@ def global_init():
 global_init()
 
 ########>>>>>VIDEO<<<<<########
+def RGB_to_Hex(r, g, b):
+	return ('#'+str(hex(r))[-2:]+str(hex(g))[-2:]+str(hex(b))[-2:]).replace('x','0').upper()
+
+
+def rgb2hsv(r, g, b):
+	r, g, b  = r/255.0, g/255.0, b/255.0
+	mx = max(r, g, b)
+	mn = min(r, g, b)
+	df = mx-mn
+	if mx == mn:
+		h = 0
+	elif mx == r:
+		h = (60*((g-b)/df) + 360) % 360
+	elif mx == g:
+		h = (60*((b-r)/df) + 120) % 360
+	elif mx == b:
+		h = (60*((r-g)/df) + 240) % 360
+	if mx == 0:
+		s = 0
+	else:
+		s = (df/mx)*100
+	v = mx*100
+	h=h/360*255
+	return str(int(h))+' '+str(int(s))+' '+str(int(v))
 
 def video_thread():
 	global footage_socket, font, frame_num, fps
@@ -63,6 +87,30 @@ def video_thread():
 	frame_num = 0
 	fps = 0
 
+def getposBgr(event, x, y, flags, param):
+	if event==cv2.EVENT_LBUTTONDOWN:
+		getBGR = source[y, x]
+		var_R.set(getBGR[2])
+		var_G.set(getBGR[1])
+		var_B.set(getBGR[0])
+		# tcpClicSock.send(('FCSET %s'%rgb2hsv(int(var_R.get()), int(var_G.get()), int(var_B.get()))).encode())
+		canvas_show.config(bg = RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+		print("Bgr is", getBGR)
+		print("HSV is", HSVimg[y, x])
+		tcpClicSock.send(('FCSET %s %s %s'%(HSVimg[y, x][0], HSVimg[y, x][1], HSVimg[y, x][2])).encode())
+		# print("HSV genOut is", rgb2hsv(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+
+
+def getposHsv(event, x, y, flags, param):
+	if event==cv2.EVENT_LBUTTONDOWN:
+		print("HSV is", HSVimg[y, x])
+		tcpClicSock.send(('FCSET %s %s %s'%(HSVimg[y, x][0], HSVimg[y, x][1], HSVimg[y, x][2])).encode())
+		getBGR = source[y, x]
+		var_R.set(getBGR[2])
+		var_G.set(getBGR[1])
+		var_B.set(getBGR[0])
+		canvas_show.config(bg = RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+
 def get_FPS():
 	global frame_num, fps
 	while 1:
@@ -74,7 +122,7 @@ def get_FPS():
 			time.sleep(1)
 
 def opencv_r():
-	global frame_num
+	global frame_num, source, HSVimg
 	while True:
 		try:
 			frame = footage_socket.recv_string()
@@ -107,6 +155,12 @@ def opencv_r():
 			
 			#cv2.putText(source,('%sm'%ultra_data),(210,290), font, 0.5,(255,255,255),1,cv2.LINE_AA)
 			cv2.imshow("Stream", source)
+			cv2.setMouseCallback("Stream", getposBgr)
+
+			HSVimg = cv2.cvtColor(source, cv2.COLOR_BGR2HSV)
+			cv2.imshow("StreamHSV", HSVimg)
+			cv2.setMouseCallback("StreamHSV", getposHsv)
+			
 			frame_num += 1
 			cv2.waitKey(1)
 
@@ -206,6 +260,14 @@ def connection_thread():
 		elif 'function_6_on' in car_info:
 			function_stu = 1
 			Btn_function_6.config(bg='#4CAF50')
+
+		elif 'CVFL_on' in car_info:
+			function_stu = 1
+			Btn_CVFL.config(bg='#4CAF50')
+
+		elif 'CVFL_off' in car_info:
+			function_stu = 0
+			Btn_CVFL.config(bg='#212121')
 
 		elif 'function_1_off' in car_info:
 			function_stu = 0
@@ -597,29 +659,29 @@ def scale(x,y,w):
 def scale_RGB(x,y,w):
 	def R_send(event):
 		time.sleep(0.03)
-		tcpClicSock.send(('wsR %s'%var_R.get()).encode())
+		tcpClicSock.send(('wsR %s'%var_R_L.get()).encode())
 
 	def G_send(event):
 		time.sleep(0.03)
-		tcpClicSock.send(('wsG %s'%var_G.get()).encode())
+		tcpClicSock.send(('wsG %s'%var_G_L.get()).encode())
 
 	def B_send(event):
 		time.sleep(0.03)
-		tcpClicSock.send(('wsB %s'%var_B.get()).encode())
+		tcpClicSock.send(('wsB %s'%var_B_L.get()).encode())
 
 	Scale_R = tk.Scale(root,label=None,
 	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
-	showvalue=1,tickinterval=None,resolution=1,variable=var_R,troughcolor='#F44336',command=R_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	showvalue=1,tickinterval=None,resolution=1,variable=var_R_L,troughcolor='#F44336',command=R_send,fg=color_text,bg=color_bg,highlightthickness=0)
 	Scale_R.place(x=x,y=y)							#Define a Scale and put it in position
 
 	Scale_G = tk.Scale(root,label=None,
 	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
-	showvalue=1,tickinterval=None,resolution=1,variable=var_G,troughcolor='#4CAF50',command=G_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	showvalue=1,tickinterval=None,resolution=1,variable=var_G_L,troughcolor='#4CAF50',command=G_send,fg=color_text,bg=color_bg,highlightthickness=0)
 	Scale_G.place(x=x,y=y+30)							#Define a Scale and put it in position
 
 	Scale_B = tk.Scale(root,label=None,
 	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
-	showvalue=1,tickinterval=None,resolution=1,variable=var_B,troughcolor='#448AFF',command=B_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	showvalue=1,tickinterval=None,resolution=1,variable=var_B_L,troughcolor='#448AFF',command=B_send,fg=color_text,bg=color_bg,highlightthickness=0)
 	Scale_B.place(x=x,y=y+60)							#Define a Scale and put it in position
 
 	canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
@@ -664,6 +726,60 @@ def scale_PWM(x,y,w):
 	Btn_Save = tk.Button(root, width=23, text='Save as Default',fg=color_text,bg='#212121',relief='ridge')
 	Btn_Save.place(x=x+1,y=y+110)
 	Btn_Save.bind('<ButtonPress-1>', call_Save)
+
+
+def scale_FL(x,y,w):
+	global Btn_CVFL
+	def lip1_send(event):
+		time.sleep(0.03)
+		tcpClicSock.send(('lip1 %s'%var_lip1.get()).encode())
+
+	def lip2_send(event):
+		time.sleep(0.03)
+		tcpClicSock.send(('lip2 %s'%var_lip2.get()).encode())
+
+	def err_send(event):
+		time.sleep(0.03)
+		tcpClicSock.send(('err %s'%var_err.get()).encode())
+
+	def call_Render(event):
+		tcpClicSock.send(('Render').encode())
+
+	def call_CVFL(event):
+		tcpClicSock.send(('CVFL').encode())
+
+	def call_WB(event):
+		tcpClicSock.send(('WBswitch').encode())
+
+	Scale_lip1 = tk.Scale(root,label=None,
+	from_=0,to=480,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_lip1,troughcolor='#212121',command=lip1_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_lip1.place(x=x,y=y)							#Define a Scale and put it in position
+
+	Scale_lip2 = tk.Scale(root,label=None,
+	from_=0,to=480,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_lip2,troughcolor='#212121',command=lip2_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_lip2.place(x=x,y=y+30)							#Define a Scale and put it in position
+
+	Scale_err = tk.Scale(root,label=None,
+	from_=0,to=200,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_err,troughcolor='#212121',command=err_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_err.place(x=x,y=y+60)							#Define a Scale and put it in position
+
+	canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
+	canvas_cover.place(x=x,y=y+90)
+
+	Btn_Render = tk.Button(root, width=10, text='Render',fg=color_text,bg='#212121',relief='ridge')
+	Btn_Render.place(x=x+w+111,y=y+20)
+	Btn_Render.bind('<ButtonPress-1>', call_Render)
+
+	Btn_CVFL = tk.Button(root, width=10, text='CV FL',fg=color_text,bg='#212121',relief='ridge')
+	Btn_CVFL.place(x=x+w+21,y=y+20)
+	Btn_CVFL.bind('<ButtonPress-1>', call_CVFL)
+
+	Btn_WB = tk.Button(root, width=23, text='LineColorSwitch',fg=color_text,bg='#212121',relief='ridge')
+	Btn_WB.place(x=x+w+21,y=y+60)
+	Btn_WB.bind('<ButtonPress-1>', call_WB)
 
 
 def ultrasonic_radar(x,y):
@@ -730,6 +846,74 @@ def new_number2view(x,y,info):
 			can_tex_11=can_scan_1.create_text((27,178),text='%sm'%round((x_range/4),2),fill='#aeea00')	 #Create a text on canvas
 			can_tex_12=can_scan_1.create_text((27,116),text='%sm'%round((x_range/2),2),fill='#aeea00')	 #Create a text on canvas
 			can_tex_13=can_scan_1.create_text((27,54),text='%sm'%round((x_range*0.75),2),fill='#aeea00')  #Create a text on canvas
+
+def scale_FC(x,y,w):
+	global canvas_show
+	def R_send(event):
+		canvas_show.config(bg = RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+		time.sleep(0.03)
+		# tcpClicSock.send(('hsvH %s'%var_R.get()).encode())
+
+	def G_send(event):
+		canvas_show.config(bg = RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+		time.sleep(0.03)
+		# tcpClicSock.send(('hsvS %s'%var_G.get()).encode())
+
+	def B_send(event):
+		canvas_show.config(bg = RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())))
+		time.sleep(0.03)
+		# tcpClicSock.send(('hsvV %s'%var_B.get()).encode())
+
+	def call_SET(event):
+		tcpClicSock.send(('FCSET %s'%rgb2hsv(int(var_R.get()), int(var_G.get()), int(var_B.get()))).encode())
+
+	Scale_R = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_R,troughcolor='#FF1744',command=R_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_R.place(x=x,y=y)							#Define a Scale and put it in position
+
+	Scale_G = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_G,troughcolor='#00E676',command=G_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_G.place(x=x,y=y+30)							#Define a Scale and put it in position
+
+	Scale_B = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_B,troughcolor='#2979FF',command=B_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_B.place(x=x,y=y+60)							#Define a Scale and put it in position
+
+	canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
+	canvas_cover.place(x=x,y=y+90)
+
+	canvas_show=tk.Canvas(root,bg=RGB_to_Hex(int(var_R.get()), int(var_G.get()), int(var_B.get())),height=35,width=170,highlightthickness=0)
+	canvas_show.place(x=w+x+21,y=y+15)
+
+	Btn_WB = tk.Button(root, width=23, text='Color Set',fg=color_text,bg='#212121',relief='ridge')
+	Btn_WB.place(x=x+w+21,y=y+60)
+	Btn_WB.bind('<ButtonPress-1>', call_SET)
+
+
+def scale_ExpCom(x,y,w):#Z
+	def EC_send(event):
+		tcpClicSock.send(('setEC %s'%var_ec.get()).encode())
+		time.sleep(0.03)
+
+	def EC_default(event):
+		var_ec.set(0)
+		tcpClicSock.send(('defEC').encode())
+
+
+	Scale_ExpCom = tk.Scale(root,label='Exposure Compensation Level',
+	from_=-25,to=25,orient=tk.HORIZONTAL,length=w,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_ec,troughcolor='#212121',command=EC_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_ExpCom.place(x=x,y=y)							#Define a Scale and put it in position
+
+	canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
+	canvas_cover.place(x=x,y=y+50)
+
+	Btn_dEC = tk.Button(root, width=23,height=2, text='Set Default Exposure\nCompensation Level',fg=color_text,bg='#212121',relief='ridge')
+	Btn_dEC.place(x=x+w+21,y=y+3)
+	Btn_dEC.bind('<ButtonPress-1>', EC_default)
 
 
 def function_buttons(x,y):
@@ -803,21 +987,28 @@ def function_buttons(x,y):
 
 
 def loop():
-	global root, var_Speed, var_R, var_G, var_B, var_0, var_1, var_2
+	global root, var_Speed, var_R_L, var_G_L, var_B_L, var_0, var_1, var_2, var_lip1, var_lip2, var_err, var_R, var_G, var_B, var_ec#Z
 	root = tk.Tk()			
 	root.title('GWR-R GUI')	  
-	root.geometry('565x570')  
+	root.geometry('565x850')  
 	root.config(bg=color_bg)  
 
 	var_Speed = tk.StringVar()
 	var_Speed.set(100)
 
+	var_R_L = tk.StringVar()
+	var_R_L.set(0)
+	var_G_L = tk.StringVar()
+	var_G_L.set(0)
+	var_B_L = tk.StringVar()
+	var_B_L.set(0)
+
 	var_R = tk.StringVar()
-	var_R.set(0)
+	var_R.set(80)
 	var_G = tk.StringVar()
-	var_G.set(0)
+	var_G.set(80)
 	var_B = tk.StringVar()
-	var_B.set(0)
+	var_B.set(80)
 
 	var_0 = tk.StringVar()
 	var_0.set(300)
@@ -825,6 +1016,16 @@ def loop():
 	var_1.set(300)
 	var_2 = tk.StringVar()
 	var_2.set(300)
+
+	var_lip1 = tk.StringVar()
+	var_lip1.set(440)
+	var_lip2 = tk.StringVar()
+	var_lip2.set(380)
+	var_err = tk.StringVar()
+	var_err.set(20)
+
+	var_ec = tk.StringVar() #Z
+	var_ec.set(0)			#Z
 
 	try:
 		logo =tk.PhotoImage(file = 'logo.png')
@@ -852,6 +1053,12 @@ def loop():
 	ultrasonic_radar(30,290)
 
 	function_buttons(480,15)
+
+	scale_FL(30,550,320)
+
+	scale_FC(30,650,320)
+
+	scale_ExpCom(30,770,320) #Z
 
 	root.mainloop()
 
