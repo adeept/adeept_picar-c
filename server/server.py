@@ -511,6 +511,21 @@ def run():
 			except:
 				pass
 
+		elif 'CVFL' in data:#1
+			if not FPV.FindLineMode:
+				FPV.FindLineMode = 1
+				tcpCliSock.send(('CVFL_on').encode())
+			else:
+				move.motorStop()
+				FPV.FindLineMode = 0
+				tcpCliSock.send(('CVFL_off').encode())
+
+		elif 'Render' in data:
+				if FPV.frameRender:
+					FPV.frameRender = 0
+				else:
+					FPV.frameRender = 1
+
 		elif 'pwm0' in data:
 			try:
 				set_pwm0=data.split()
@@ -582,6 +597,20 @@ def run():
 				sr.pause()
 				move.motorStop()
 				tcpCliSock.send(('sr_off').encode())
+				
+		elif 'FCSET' in data:
+			FCSET = data.split()
+			fpv.colorFindSet(int(FCSET[1]), int(FCSET[2]), int(FCSET[3]))
+
+		elif 'setEC' in data:#Z
+			ECset = data.split()
+			try:
+				fpv.setExpCom(int(ECset[1]))
+			except:
+				pass
+
+		elif 'defEC' in data:#Z
+			fpv.defaultExpCom()
 
 		else:
 			pass
